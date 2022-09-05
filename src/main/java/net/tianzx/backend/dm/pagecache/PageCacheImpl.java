@@ -38,7 +38,13 @@ public class PageCacheImpl extends AbstractCache<Page> implements PageCache {
 
     @Override
     public Page getPage(int pgno) throws Exception {
-        return null;
+        Page pg;
+        try {
+            pg = get((long)pgno);
+        } catch (Exception e) {
+            throw e;
+        }
+        return pg;
     }
 
     @Override
@@ -96,7 +102,7 @@ public class PageCacheImpl extends AbstractCache<Page> implements PageCache {
 
     @Override
     public void release(Page page) {
-
+        release((long)page.getPageNumber());
     }
 
     @Override

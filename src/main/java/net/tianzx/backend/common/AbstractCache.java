@@ -79,7 +79,7 @@ public abstract class AbstractCache<T> {
     }
 
     protected void release(long key) {
-        lock.unlock();
+        lock.lock();
         try {
             int ref = references.get(key) - 1;
             if(ref == 0) {
