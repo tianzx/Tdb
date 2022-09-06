@@ -80,7 +80,7 @@ public class DataManagerImpl extends AbstractCache<DataItem> implements DataMana
             //build redo log
             byte[] log = Recover.insertLog(xid, pg, raw);
             logger.log(log);
-
+            //data log
             short offset = PageX.insert(pg, raw);
 
             pg.release();
