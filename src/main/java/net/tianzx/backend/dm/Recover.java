@@ -2,6 +2,8 @@ package net.tianzx.backend.dm;
 
 import com.google.common.primitives.Bytes;
 import net.tianzx.backend.common.Parser;
+import net.tianzx.backend.common.SubArray;
+import net.tianzx.backend.dm.dataitem.DataItem;
 import net.tianzx.backend.dm.logger.Logger;
 import net.tianzx.backend.dm.page.Page;
 import net.tianzx.backend.dm.page.PageX;
@@ -190,4 +192,56 @@ public class Recover {
         }
     }
 
+    public static byte[] updateLog(long xid, DataItem di) {
+        byte[] logType = {LOG_TYPE_UPDATE};
+        byte[] xidRaw = Parser.long2Byte(xid);
+        byte[] uidRaw = Parser.long2Byte(di.getUid());
+        byte[] oldRaw = di.getOldRaw();
+        SubArray raw = di.getRaw();
+        byte[] newRaw = Arrays.copyOfRange(raw.raw, raw.start, raw.end);
+        return Bytes.concat(logType, xidRaw, uidRaw, oldRaw, newRaw);
+    }
+
+    public static void recover(TransactionManager tm, Logger lg, PageCache pc) {
+        System.out.println("Recovering...");
+
+        lg.rewind();
+        int maxPgno = 0;
+        while(true) {
+            byte[] log = lg.next();
+            if(log == null) break;
+            int pgno;
+            if(isInsertLog(log)) {
+                InsertLogInfo li = parseInsertLog(log);
+                pgno = li.pgno;
+            } else {
+                UpdateLogInfo li = parseUpdateLog(log);
+                pgno = li.pgno;
+            }
+            if(pgno > maxPgno) {
+                maxPgno = pgno;
+            }
+        }
+        if(maxPgno == 0) {
+            maxPgno = 1;
+        }
+        pc.truncateByBgno(maxPgno);
+        System.out.println("Truncate to " + maxPgno + " pages.");
+
+        redoTranscations(tm, lg, pc);
+        System.out.println("Redo Transactions Over.");
+
+        undoTranscations(tm, lg, pc);
+        System.out.println("Undo Transactions Over.");
+
+        System.out.println("Recovery Over.");
+    }
+
+    public static byte[] insertLog(long xid, Page pg, byte[] raw) {
+        byte[] logTypeRaw = {LOG_TYPE_INSERT};
+        byte[] xidRaw = Parser.long2Byte(xid);
+        byte[] pgnoRaw = Parser.int2Byte(pg.getPageNumber());
+        byte[] offsetRaw = Parser.short2Byte(PageX.getFSO(pg));
+        return Bytes.concat(logTypeRaw, xidRaw, pgnoRaw, offsetRaw, raw);
+    }
 }

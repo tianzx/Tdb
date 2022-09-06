@@ -47,6 +47,11 @@ public class PageX {
         return Parser.parseShort(Arrays.copyOfRange(raw, 0, 2));
     }
 
+    // 获取pg的FSO
+    public static short getFSO(Page pg) {
+        return getFSO(pg.getData());
+    }
+
     // 将raw插入pg中的offset位置，并将pg的offset设置为较大的offset
     public static void recoverInsert(Page pg, byte[] raw, short offset) {
         pg.setDirty(true);
